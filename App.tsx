@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -20,15 +20,36 @@ import {
 import { _GLOBAL_COLORS } from './source/Util/ColorConstants';
 import SplashScreen from './source/Components/SplashScreen';
 import MainPage from './source/Pages/MainPage';
+import RNSecureStorage from 'rn-secure-storage';
+
+export const GlobalContext = createContext({
+  isLogin: false,
+  setLoginStatus: () => { },
+  loginDetails: {}
+})
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [isLogin, setIsLogin] = useState(false);
+  const [loginDetails, setloginDetails] = useState({});
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplashScreen(false), 4000);
+    RNSecureStorage.getItem("UserInfo").then((res) => {
+      console.log(res);
+      // setLoginStatus(true,res);
+    }).catch((err) => {
+      console.log(err);
+      setLoginStatus(false, {});
+    });
     return () => clearTimeout(timer); // Clear timeout if component unmounts
   }, []);
+
+  const setLoginStatus = (flag: boolean = false, details: { [key: string]: string } = {}) => {
+    setIsLogin(flag)
+    setloginDetails(details);
+  }
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -42,7 +63,17 @@ function App(): React.JSX.Element {
         backgroundColor={backgroundStyle.backgroundColor}
       />
       <View style={styles.mainContainer}>
-        {showSplashScreen ? <SplashScreen /> : <MainPage />}
+        {showSplashScreen ?
+          <SplashScreen />
+          :
+          <GlobalContext.Provider value={{
+            isLogin,
+            setLoginStatus,
+            loginDetails
+          }}>
+            <MainPage />
+          </GlobalContext.Provider>
+        }
       </View>
     </SafeAreaView>
   );
