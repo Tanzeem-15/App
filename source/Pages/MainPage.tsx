@@ -70,6 +70,7 @@ const MainPage: React.FC = () => {
                     textColor={_GLOBAL_COLORS.TEXT_COLOR_4}
                     value={enteredDetails.userName}
                     onChange={data => updateEnteredDetails('userName', data.nativeEvent.text)}
+                    onSubmitEditing={() => firstPinRef.current?.focus()}
                 />
                 {error.userName && <Text style={styles.errorText}>Enter User Name</Text>}
                 <Text style={styles.pinLabelStyle}>Enter Pin</Text>
