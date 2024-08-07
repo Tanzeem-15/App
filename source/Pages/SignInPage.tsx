@@ -5,9 +5,35 @@ import LinearGradient from "react-native-linear-gradient";
 import { GlobalContext } from "../../App";
 import { TextInput } from "react-native-paper";
 import Button from "../Components/UI/Button";
+import RNSecureStorage, { ACCESSIBLE } from "rn-secure-storage";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { MainNavigationProp } from "../Navigation/MainNav";
 
-const MainPage: React.FC = () => {
-    const { isLogin, loginDetails } = useContext(GlobalContext);
+interface LoginDetails {
+    userName: string;
+    pin_1: string;
+    pin_2: string;
+    pin_3: string;
+    pin_4: string;
+}
+
+interface GlobalContextType {
+    isLogin: boolean;
+    loginDetails: LoginDetails;
+}
+
+const SignInPage: React.FC = () => {
+    const {
+        isLogin,
+        loginDetails: {
+            userName = '',
+            pin_1 = '',
+            pin_2 = '',
+            pin_3 = '',
+            pin_4 = ''
+        } = {} as LoginDetails
+    } = useContext(GlobalContext) as unknown as GlobalContextType;
+
 
     type EnteredDetails = {
         userName: string;
@@ -16,6 +42,8 @@ const MainPage: React.FC = () => {
         pin_3: string;
         pin_4: string;
     };
+
+    const navigation = useNavigation<MainNavigationProp>();
 
     const [enteredDetails, setEnteredDetails] = useState<EnteredDetails>({
         userName: "",
@@ -32,7 +60,8 @@ const MainPage: React.FC = () => {
     const fourthPinRef = useRef<ReactTextInput>(null);
 
     useEffect(() => {
-    }, [isLogin, loginDetails]);
+
+    }, [isLogin]);
 
     const updateEnteredDetails = (identifier: keyof EnteredDetails, value: string, index?: number) => {
         if (value && index == 1) {
@@ -112,16 +141,28 @@ const MainPage: React.FC = () => {
         if (Object.values(errors).some(flag => flag)) {
             setError({ userName: errors.userName, pin: errors.pin });
         } else {
-            console.log("Sign in");
-
+            RNSecureStorage.setItem("UserInfo", JSON.stringify(enteredDetails), { accessible: ACCESSIBLE.WHEN_UNLOCKED }).then((res) => {
+                console.log(res);
+                navigation.navigate('Home');
+            }).catch((err) => {
+                console.log(err);
+            });
         }
+    }
+
+    const renderReloginView = () => {
+        return (
+            <View>
+                <Text></Text>
+            </View>
+        )
     }
 
     return (
         <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} colors={['#292828', '#5e5f5c']} style={styles.linearGradient}>
             <View style={styles.mainContainer}>
                 {renderHeaderImage()}
-                {isLogin ? <></> : renderUnameAndPinView()}
+                {isLogin ? renderReloginView() : renderUnameAndPinView()}
             </View>
         </LinearGradient>
     );
@@ -183,4 +224,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default MainPage;
+export default SignInPage;
