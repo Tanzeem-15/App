@@ -15,9 +15,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MainNav: React.FC = () => {
     return (
-        <Stack.Navigator screenOptions={{
-            headerShown: false
-        }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name='SignIn' component={SignInPage} />
             <Stack.Screen name='Home' component={HomePage} />
         </Stack.Navigator>

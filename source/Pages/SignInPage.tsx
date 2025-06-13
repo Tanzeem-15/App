@@ -64,18 +64,29 @@ const SignInPage: React.FC = () => {
     }, [isLogin]);
 
     const updateEnteredDetails = (identifier: keyof EnteredDetails, value: string, index?: number) => {
-        if (value && index == 1) {
-            secondPinRef?.current?.focus();
-        } else if (value && index == 2) {
-            thirdPinRef?.current?.focus();
-        } else if (value && index == 3) {
-            fourthPinRef?.current?.focus();
+        if (value.length <= 1) {
+            if (value != "" && index == 1) {
+                secondPinRef?.current?.focus();
+            } else if (value != "" && index == 2) {
+                thirdPinRef?.current?.focus();
+            } else if (value != "" && index == 3) {
+                fourthPinRef?.current?.focus();
+            } else if (value == "" && index == 4) {
+                thirdPinRef?.current?.focus();
+            } else if (value == "" && index == 3) {
+                secondPinRef?.current?.focus();
+            } else if (value == "" && index == 2) {
+                firstPinRef?.current?.focus();
+            }
+            setEnteredDetails(current => ({
+                ...current,
+                [identifier]: value
+            }));
+            setError({ userName: false, pin: false })
+        } else if (value.length == 4) {
+            const splitValue = value.split("");
+            console.log("Value:::", splitValue)
         }
-        setEnteredDetails(current => ({
-            ...current,
-            [identifier]: value
-        }));
-        setError({ userName: false, pin: false })
     };
 
     const renderHeaderImage = () => {
@@ -111,7 +122,7 @@ const SignInPage: React.FC = () => {
                                 ref={inputRef}
                                 key={`input_${index}`}
                                 style={styles.pinInputStyle}
-                                maxLength={1}
+                                maxLength={4}
                                 keyboardType="number-pad"
                                 value={enteredDetails[id] || ""}
                                 onChange={data => updateEnteredDetails(id, data.nativeEvent.text, index + 1)}
