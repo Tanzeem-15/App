@@ -85,7 +85,14 @@ const SignInPage: React.FC = () => {
             setError({ userName: false, pin: false })
         } else if (value.length == 4) {
             const splitValue = value.split("");
-            console.log("Value:::", splitValue)
+            setEnteredDetails(current => ({
+                ...current,
+                pin_1: splitValue[0],
+                pin_2: splitValue[1],
+                pin_3: splitValue[2],
+                pin_4: splitValue[3]
+            }));
+            fourthPinRef?.current?.focus();
         }
     };
 
