@@ -1,11 +1,12 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, Text, View, TextInput as ReactTextInput, Keyboard } from "react-native";
 import { _GLOBAL_COLORS } from "../Util/ColorConstants";
 import LinearGradient from "react-native-linear-gradient";
-import { GlobalContext } from "../../App";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../redux/store";
+import { setLoginStatus } from "../redux/loginReducer";
 import { TextInput } from "react-native-paper";
 import Button from "../Components/UI/Button";
-import RNSecureStorage, { ACCESSIBLE } from "rn-secure-storage";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { MainNavigationProp } from "../Navigation/MainNav";
 
@@ -17,12 +18,8 @@ interface LoginDetails {
     pin_4: string;
 }
 
-interface GlobalContextType {
-    isLogin: boolean;
-    loginDetails: LoginDetails;
-}
-
 const SignInPage: React.FC = () => {
+    const dispatch = useDispatch();
     const {
         isLogin,
         loginDetails: {
@@ -32,7 +29,7 @@ const SignInPage: React.FC = () => {
             pin_3 = '',
             pin_4 = ''
         } = {} as LoginDetails
-    } = useContext(GlobalContext) as unknown as GlobalContextType;
+    } = useSelector((state: RootState) => state.login);
 
 
     type EnteredDetails = {
@@ -60,8 +57,10 @@ const SignInPage: React.FC = () => {
     const fourthPinRef = useRef<ReactTextInput>(null);
 
     useEffect(() => {
-
-    }, [isLogin]);
+        if (isLogin) {
+            navigation.replace('Home');
+        }
+    }, [isLogin, navigation]);
 
     const updateEnteredDetails = (identifier: keyof EnteredDetails, value: string, index?: number) => {
         if (value.length <= 1) {
@@ -159,12 +158,8 @@ const SignInPage: React.FC = () => {
         if (Object.values(errors).some(flag => flag)) {
             setError({ userName: errors.userName, pin: errors.pin });
         } else {
-            RNSecureStorage.setItem("UserInfo", JSON.stringify(enteredDetails), { accessible: ACCESSIBLE.WHEN_UNLOCKED }).then((res) => {
-                console.log(res);
-                navigation.navigate('Home');
-            }).catch((err) => {
-                console.log(err);
-            });
+            dispatch(setLoginStatus(true, enteredDetails));
+            navigation.navigate('Home');
         }
     }
 

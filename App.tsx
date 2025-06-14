@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { createContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -19,51 +19,23 @@ import {
 } from 'react-native/Libraries/NewAppScreen';
 import { _GLOBAL_COLORS } from './source/Util/ColorConstants';
 import SplashScreen from './source/Components/SplashScreen';
-import RNSecureStorage from 'rn-secure-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainNav from './source/Navigation/MainNav';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './source/redux/store';
 
-export const GlobalContext = createContext({
-  isLogin: false,
-  setLoginStatus: () => { },
-  loginDetails: {}
-})
 
 const Stack = createNativeStackNavigator();
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   const [showSplashScreen, setShowSplashScreen] = useState(true);
-  const [isLogin, setIsLogin] = useState(false);
-  const [loginDetails, setloginDetails] = useState({});
-
   useEffect(() => {
     const timer = setTimeout(() => setShowSplashScreen(false), 4000);
-    RNSecureStorage.getItem("UserInfo").then((result: string | null) => {
-      if (result) {
-        console.log("Received Result:", result);
-        try {
-          const details = JSON.parse(result);
-          // setLoginStatus(true, details);
-        } catch (error) {
-          console.log('Error parsing JSON:', error);
-          setLoginStatus(false, {});
-        }
-      } else {
-        setLoginStatus(false, {});
-      }
-    }).catch((err) => {
-      console.log(err);
-      setLoginStatus(false, {});
-    });
-    return () => clearTimeout(timer); // Clear timeout if component unmounts
+    return () => clearTimeout(timer);
   }, []);
-
-  const setLoginStatus = (flag: boolean = false, details: { [key: string]: string } = {}) => {
-    setIsLogin(flag)
-    setloginDetails(details);
-  }
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -71,32 +43,27 @@ function App(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <View style={styles.mainContainer}>
-        {showSplashScreen ?
-          <SplashScreen />
-          :
-          <GlobalContext.Provider value={{
-            isLogin,
-            setLoginStatus,
-            loginDetails
-          }}>
-            <NavigationContainer>
-              <Stack.Navigator
-                screenOptions={{
-                  headerShown: false
-                }}>
-                <Stack.Screen name='initial' component={MainNav} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          </GlobalContext.Provider>
-        }
-      </View>
-    </SafeAreaView>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <SafeAreaView style={backgroundStyle}>
+          <StatusBar
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+            backgroundColor={backgroundStyle.backgroundColor}
+          />
+          <View style={styles.mainContainer}>
+            {showSplashScreen ? (
+              <SplashScreen />
+            ) : (
+              <NavigationContainer>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name='initial' component={MainNav} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            )}
+          </View>
+        </SafeAreaView>
+      </PersistGate>
+    </Provider>
   );
 }
 
