@@ -135,7 +135,7 @@ const SignInPage: React.FC = () => {
                                 onChange={data => updateEnteredDetails(id, data.nativeEvent.text, index + 1)}
                             />
                         );
-                    })
+                    })}
                 </View>
                 {error.pin && <Text style={styles.errorText}>Enter 4 digit Pin </Text>}
                 <View style={{ height: 10 }} />
