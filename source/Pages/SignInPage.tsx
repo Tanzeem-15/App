@@ -135,7 +135,7 @@ const SignInPage: React.FC = () => {
                                 onChange={data => updateEnteredDetails(id, data.nativeEvent.text, index + 1)}
                             />
                         );
-                    })}
+                    })
                 </View>
                 {error.pin && <Text style={styles.errorText}>Enter 4 digit Pin </Text>}
                 <View style={{ height: 10 }} />
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
         marginTop: '5%',
         marginBottom: '3%',
         color: "#FFFFFF",
-        fontWeight: 'heavy',
+        fontWeight: 'bold',
         fontSize: 20,
         textAlign: 'center'
     },
