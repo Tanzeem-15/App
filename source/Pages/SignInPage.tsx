@@ -58,7 +58,7 @@ const SignInPage: React.FC = () => {
 
     useEffect(() => {
         if (isLogin) {
-            navigation.replace('Home');
+            navigation.navigate('Home');
         }
     }, [isLogin, navigation]);
 
