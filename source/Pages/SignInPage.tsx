@@ -7,7 +7,7 @@ import { RootState } from "../redux/store";
 import { setLoginStatus } from "../redux/loginReducer";
 import { TextInput } from "react-native-paper";
 import Button from "../Components/UI/Button";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { MainNavigationProp } from "../Navigation/MainNav";
 
 interface LoginDetails {
@@ -58,12 +58,21 @@ const SignInPage: React.FC = () => {
 
     useEffect(() => {
         if (isLogin) {
-            navigation.replace('Home');
+<<<<<<< HEAD
+            navigation.navigate('Home');
+=======
+            // navigation.replace('Home');
+>>>>>>> origin/learning/temp-branch
         }
     }, [isLogin, navigation]);
 
     const updateEnteredDetails = (identifier: keyof EnteredDetails, value: string, index?: number) => {
-        if (value.length <= 1) {
+        if (identifier == "userName") {
+            setEnteredDetails(current => ({
+                ...current,
+                [identifier]: value
+            }));
+        } else if (value.length <= 1) {
             if (value != "" && index == 1) {
                 secondPinRef?.current?.focus();
             } else if (value != "" && index == 2) {
@@ -166,7 +175,13 @@ const SignInPage: React.FC = () => {
     const renderReloginView = () => {
         return (
             <View>
-                <Text></Text>
+                <Text style={{
+                    fontSize:40,
+                    fontStyle:'italic',
+                    color:'white',
+                    fontWeight:'heavy',
+                    backgroundColor:'red'
+                }}>{userName}</Text>
             </View>
         )
     }
