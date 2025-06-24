@@ -58,11 +58,7 @@ const SignInPage: React.FC = () => {
 
     useEffect(() => {
         if (isLogin) {
-<<<<<<< HEAD
             navigation.navigate('Home');
-=======
-            // navigation.replace('Home');
->>>>>>> origin/learning/temp-branch
         }
     }, [isLogin, navigation]);
 
