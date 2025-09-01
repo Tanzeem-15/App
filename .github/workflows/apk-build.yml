@@ -3,7 +3,7 @@ name: Build and Sign APK
 on:
   workflow_dispatch:
 
-# 👇 Give the workflow write access to create releases
+# needed so softprops/action-gh-release can create a release
 permissions:
   contents: write
 
@@ -65,7 +65,6 @@ jobs:
             echo "toobig=false" >> $GITHUB_OUTPUT
           fi
 
-      # 🔓 Create a Release and upload the APK
       - name: Create GitHub Release (uploads APK)
         id: release
         uses: softprops/action-gh-release@v2
@@ -78,11 +77,10 @@ jobs:
             Runner: ${{ github.workflow }} / ${{ github.run_id }}
           files: ${{ env.APK_PATH }}
           prerelease: true
-          # If your org blocks the default token, create a PAT with `repo` scope, save as GH_PAT, then uncomment:
-          # token: ${{ secrets.GH_PAT }}
         env:
-          # Default token works if repo Workflow permissions are "Read and write"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # If your org blocks GITHUB_TOKEN for releases:
+          # token: ${{ secrets.GH_PAT }}  # PAT with repo scope
 
       # === EMAIL: SMALL APK (attach) ===
       - name: Email APK to Testers (attach if small)
@@ -90,10 +88,11 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
+          server_port: ${{ secrets.SMTP_PORT }}     # e.g. 587 for STARTTLS
+          secure: false                             # IMPORTANT: false for 587 (STARTTLS)
+          # If you must use 465 instead, set: server_port: 465 and secure: true
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          secure: true
           from: ${{ secrets.MAIL_FROM }}
           to: ${{ secrets.MAIL_TO }}
           subject: "Android APK – Release (${{ steps.meta.outputs.sha_short }}) – ${{ steps.meta.outputs.date }}"
@@ -116,10 +115,11 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
+          server_port: ${{ secrets.SMTP_PORT }}     # e.g. 587 for STARTTLS
+          secure: false                             # IMPORTANT: false for 587 (STARTTLS)
+          # If you must use 465 instead, set: server_port: 465 and secure: true
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          secure: true
           from: ${{ secrets.MAIL_FROM }}
           to: ${{ secrets.MAIL_TO }}
           subject: "Android APK – Release (${{ steps.meta.outputs.sha_short }}) – ${{ steps.meta.outputs.date }} [Link Only]"
