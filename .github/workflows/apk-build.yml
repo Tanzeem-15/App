@@ -3,6 +3,10 @@ name: Build and Sign APK
 on:
   workflow_dispatch:
 
+# 👇 Give the workflow write access to create releases
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Generate Signed APK
@@ -55,14 +59,14 @@ jobs:
         run: |
           size=$(stat -c%s "${{ env.APK_PATH }}")
           echo "size=$size" >> $GITHUB_OUTPUT
-          # Threshold ~20MB
           if [ "$size" -gt 20000000 ]; then
             echo "toobig=true" >> $GITHUB_OUTPUT
           else
             echo "toobig=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create GitHub Release (always upload APK)
+      # 🔓 Create a Release and upload the APK
+      - name: Create GitHub Release (uploads APK)
         id: release
         uses: softprops/action-gh-release@v2
         with:
@@ -74,7 +78,10 @@ jobs:
             Runner: ${{ github.workflow }} / ${{ github.run_id }}
           files: ${{ env.APK_PATH }}
           prerelease: true
+          # If your org blocks the default token, create a PAT with `repo` scope, save as GH_PAT, then uncomment:
+          # token: ${{ secrets.GH_PAT }}
         env:
+          # Default token works if repo Workflow permissions are "Read and write"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # === EMAIL: SMALL APK (attach) ===
