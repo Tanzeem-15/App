@@ -35,9 +35,95 @@ jobs:
         run: |
           cd android
           ./gradlew assembleRelease
+          cd ..
+          echo "APK_PATH=android/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_ENV
 
-      - name: Upload APK Artifact
+      - name: Upload APK Artifact (optional)
         uses: actions/upload-artifact@v4
         with:
           name: MobileApp.apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: ${{ env.APK_PATH }}
+
+      - name: Prepare metadata
+        id: meta
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_OUTPUT
+
+      - name: Check APK size
+        id: apkmeta
+        run: |
+          size=$(stat -c%s "${{ env.APK_PATH }}")
+          echo "size=$size" >> $GITHUB_OUTPUT
+          # Threshold ~20MB
+          if [ "$size" -gt 20000000 ]; then
+            echo "toobig=true" >> $GITHUB_OUTPUT
+          else
+            echo "toobig=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release (always upload APK)
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "build-${{ github.run_number }}"
+          name: "Build ${{ github.run_number }} • ${{ github.ref_name }}"
+          body: |
+            Commit: ${{ steps.meta.outputs.sha_short }}
+            Date:   ${{ steps.meta.outputs.date }}
+            Runner: ${{ github.workflow }} / ${{ github.run_id }}
+          files: ${{ env.APK_PATH }}
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # === EMAIL: SMALL APK (attach) ===
+      - name: Email APK to Testers (attach if small)
+        if: steps.apkmeta.outputs.toobig == 'false'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          subject: "Android APK – Release (${{ steps.meta.outputs.sha_short }}) – ${{ steps.meta.outputs.date }}"
+          html_body: |
+            <p>Hi Test Team,</p>
+            <p>A new Android release APK has been generated from commit <b>${{ steps.meta.outputs.sha_short }}</b>.</p>
+            <ul>
+              <li>Branch: <code>${{ github.ref_name }}</code></li>
+              <li>Workflow: <code>${{ github.workflow }}</code></li>
+              <li>Run: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Logs</a></li>
+              <li>Release: <a href="${{ steps.release.outputs.html_url }}">Download / Notes</a></li>
+            </ul>
+            <p>The APK is attached. If mail clients strip the attachment, use the Release link above.</p>
+            <p>— CI Bot</p>
+          attachments: ${{ env.APK_PATH }}
+
+      # === EMAIL: LARGE APK (link only) ===
+      - name: Email APK to Testers (link if large)
+        if: steps.apkmeta.outputs.toobig == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          subject: "Android APK – Release (${{ steps.meta.outputs.sha_short }}) – ${{ steps.meta.outputs.date }} [Link Only]"
+          html_body: |
+            <p>Hi Test Team,</p>
+            <p>A new Android release APK has been generated from commit <b>${{ steps.meta.outputs.sha_short }}</b>.</p>
+            <ul>
+              <li>Branch: <code>${{ github.ref_name }}</code></li>
+              <li>Workflow: <code>${{ github.workflow }}</code></li>
+              <li>Run: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Logs</a></li>
+              <li>Release: <a href="${{ steps.release.outputs.html_url }}">Download APK</a></li>
+            </ul>
+            <p>The APK exceeded typical email attachment limits, so I’ve shared it via the GitHub Release link above.</p>
+            <p>— CI Bot</p>
