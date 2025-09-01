@@ -1,4 +1,4 @@
-name: Build and Sign APK (On Command)
+name: Build and Sign APK
 
 on:
   # Trigger when a new comment is created on issues/PRs
