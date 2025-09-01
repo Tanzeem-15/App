@@ -1,23 +1,17 @@
-name: Build and Sign APK
+name: Build and Sign APK (On Command)
 
 on:
-  # Trigger when a new comment is created on issues/PRs
   issue_comment:
     types: [created]
 
-# Minimal permissions; issues:write to reply in PR thread
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
   issues: write
 
 jobs:
   build:
     name: Generate Signed APK
-    # Run only when:
-    # - The comment is on a PR (not a plain issue)
-    # - The comment starts with "/build-apk"
-    # - The commenter is a repo MEMBER/OWNER/COLLABORATOR
     if: >
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/build-apk') &&
@@ -25,18 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Acknowledge command
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNum = context.payload.issue.number;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNum,
-              body: `👋 Received command \`${context.payload.comment.body.trim()}\`. Validating and starting build…`
-            });
-
+      # 1) Resolve PR metadata (needed for fork detection and checkout)
       - name: Get PR metadata
         id: pr
         uses: actions/github-script@v7
@@ -53,17 +36,20 @@ jobs:
             core.setOutput('base_repo', pr.data.base.repo.full_name);
             core.setOutput('base_ref',  pr.data.base.ref);
 
-      # SECURITY: Do NOT run a signed build with secrets on code from forks
+      # 2) Guard against forked PRs BEFORE any commenting or secrets
       - name: Guard against forked PRs
         id: fork-guard
         run: |
           if [ "${{ steps.pr.outputs.head_repo }}" != "${{ steps.pr.outputs.base_repo }}" ]; then
-            echo "This is a forked PR; refusing to run a signed build with secrets."
+            echo "This is a forked PR; skipping signed build + comments."
             echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Inform and skip on forked PR
-        if: steps.fork-guard.outputs.skip == 'true'
+      # 3) Only acknowledge if we're allowed to comment (non-fork)
+      - name: Acknowledge command
+        if: steps.fork-guard.outputs.skip == 'false'
         uses: actions/github-script@v7
         with:
           script: |
@@ -72,13 +58,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNum,
-              body: "⚠️ Skipping: This PR originates from a fork. For security, signed builds with repository secrets don't run on forked PRs."
+              body: `👋 Received command \`${context.payload.comment.body.trim()}\`. Starting build…`
             });
 
+      # 4) Stop early on forked PRs (no secrets, no comments)
       - name: Stop job on forked PR
         if: steps.fork-guard.outputs.skip == 'true'
         run: exit 0
 
+      # 5) Checkout PR branch
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
@@ -86,6 +74,7 @@ jobs:
           ref: ${{ steps.pr.outputs.head_ref }}
           fetch-depth: 0
 
+      # 6) Tooling
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -94,6 +83,7 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # 7) Keystore + build (secrets only on non-fork)
       - name: Decode Keystore from Secret
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/my-release-key.keystore
@@ -109,6 +99,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon
 
+      # 8) Artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -116,8 +107,9 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
+      # 9) Final comment only when allowed
       - name: Comment build result
-        if: always()
+        if: steps.fork-guard.outputs.skip == 'false' && always()
         uses: actions/github-script@v7
         with:
           script: |
